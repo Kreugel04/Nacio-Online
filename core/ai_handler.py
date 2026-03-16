@@ -11,7 +11,7 @@ class AIHandler:
     def __init__(self, use_local=True):
         load_dotenv()
         
-        # --- 1. THE CLOUD ENGINE
+        # --- 1. SAFELY GET THE API KEY ---
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
             try:
@@ -19,18 +19,28 @@ class AIHandler:
             except KeyError:
                 print("[SYSTEM ERROR]: API Key not found in OS or st.secrets!")
                 
-        # --- 1. THE CLOUD ENGINE
-            self.cloud_client = OpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=api_key, # <--- Uses the safely retrieved key
-                default_headers={
-                    "HTTP-Referer": "https://nacio-simulator.local",
-                    "X-Title": "Nacio: A Global Symphony",
-                }
+        # --- 2. ALWAYS INITIALIZE THE CLOUD ENGINE ---
+        self.cloud_client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key, 
+            default_headers={
+                "HTTP-Referer": "https://nacio-simulator.local",
+                "X-Title": "Nacio: A Global Symphony",
+            }
+        )
+        self.cloud_model = "meta-llama/llama-3.3-70b-instruct:free" 
+        
+        # --- 3. SET UP THE LOCAL ENGINE (OR CLOUD MIRROR) ---
+        self.use_local = use_local
+        if self.use_local:
+            self.local_client = OpenAI(
+                base_url="http://localhost:11434/v1",
+                api_key="ollama", # Placeholder for local
             )
-            self.cloud_model = "meta-llama/llama-3.3-70b-instruct:free"
+            self.local_model = "llama3.2"
             print("[SYSTEM LOG]: 🌐 HYBRID MODE ENGAGED. Cloud Initialization / Local Gameplay.")
         else:
+            # If use_local is False, we just point the local variables to the cloud!
             self.local_client = self.cloud_client
             self.local_model = self.cloud_model
             print("[SYSTEM LOG]: ☁️ CLOUD MODE ENGAGED. All generation via OpenRouter.")
