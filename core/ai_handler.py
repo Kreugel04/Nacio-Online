@@ -2,6 +2,7 @@
 import json
 import time
 import os
+import streamlit as st
 import re
 from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError
@@ -12,25 +13,22 @@ class AIHandler:
         
         # --- 1. THE CLOUD ENGINE
         api_key = os.getenv("OPENROUTER_API_KEY")
-        self.cloud_client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=api_key,
-            default_headers={
-                "HTTP-Referer": "https://nacio-simulator.local",
-                "X-Title": "Nacio: A Global Symphony",
-            }
-        )
-        # We use Meta's 70B model here because it is flawless at JSON formatting
-        self.cloud_model = "meta-llama/llama-3.3-70b-instruct:free" 
-        
-        # --- 2. THE LOCAL ENGINE (For Fast Gameplay & Narrative) ---
-        self.use_local = use_local
-        if use_local:
-            self.local_client = OpenAI(
-                base_url="http://localhost:11434/v1",
-                api_key="ollama", # Placeholder, Ollama doesn't need a real key
+        if not api_key:
+            try:
+                api_key = st.secrets["OPENROUTER_API_KEY"]
+            except KeyError:
+                print("[SYSTEM ERROR]: API Key not found in OS or st.secrets!")
+                
+        # --- 1. THE CLOUD ENGINE
+            self.cloud_client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=api_key, # <--- Uses the safely retrieved key
+                default_headers={
+                    "HTTP-Referer": "https://nacio-simulator.local",
+                    "X-Title": "Nacio: A Global Symphony",
+                }
             )
-            self.local_model = "llama3.2"
+            self.cloud_model = "meta-llama/llama-3.3-70b-instruct:free"
             print("[SYSTEM LOG]: 🌐 HYBRID MODE ENGAGED. Cloud Initialization / Local Gameplay.")
         else:
             self.local_client = self.cloud_client
